@@ -1,17 +1,19 @@
 DEEP Open Catalogue: Image classification
 =========================================
 
-[![Build Status](https://jenkins.indigo-datacloud.eu/buildStatus/icon?job=Pipeline-as-code/DEEP-OC-org/phyto-plankton-classification/master)](https://jenkins.indigo-datacloud.eu/job/Pipeline-as-code/job/DEEP-OC-org/job/phyto-plankton-classification/job/master/)
+[![Build Status](https://jenkins.indigo-datacloud.eu/buildStatus/icon?job=Pipeline-as-code%2FDEEP-OC-org%2FUC-lifewatch-phyto-plankton-classification%2Fmaster)](https://jenkins.indigo-datacloud.eu/job/Pipeline-as-code/job/DEEP-OC-org/job/UC-lifewatch-phyto-plankton-classification/job/master/)
 
 
-**Author:** [Ignacio Heredia & Wout Decrop](https://github.com/IgnacioHeredia) (CSIC)
+**Author:** [Ignacio Heredia & Wout Decrop](https://github.com/IgnacioHeredia) (CSIC & VLIZ)
+
+**Project:** This work is part of the [iMagine](https://www.imagine-ai.eu/) project that receives funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No. 101058625.
 
 **Project:** This work is part of the [DEEP Hybrid-DataCloud](https://deep-hybrid-datacloud.eu/) project that has
 received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 777435.
 
 This is a plug-and-play tool to train and evaluate an phytoplankton classifier on a custom dataset using deep neural networks.
 
-You can find more information about it in the [DEEP Marketplace](https://marketplace.deep-hybrid-datacloud.eu/modules/deep-oc-phyto-plankton-classification.html).
+You can find more information about it in the [iMagine Marketplace](https://dashboard.cloud.imagine-ai.eu/marketplace/modules/uc-lifewatch-deep-oc-phyto-plankton-classification).
 
 **Table of contents**
 1. [Installing this module](#installing-this-module)
@@ -44,7 +46,7 @@ To start using this framework clone the repo and download the [default weights](
 ```bash
 # First line installs OpenCV requirement
 apt-get update && apt-get install -y libgl1
-git clone https://github.com/deephdc/phyto-plankton-classification
+git clone https://github.com/lifewatch/phyto-plankton-classification
 cd phyto-plankton-classification
 pip install -e .
 curl -o ./models/default_imagenet.tar.xz https://api.cloud.ifca.es:8080/swift/v1/imagenet-tf/default_imagenet.tar.xz #create share link from nextcloud
@@ -68,12 +70,12 @@ So open docker, if correct, you should see a small ship (docker desktop) symbol 
 #### 1.3 Clone the directory
 The directory is cloned so that the remote and the local directory are the same. This makes it easier to copy files inside the remote directory
 ```bash
-git clone https://github.com/deephdc/phyto-plankton-classification
+git clone https://github.com/lifewatch/phyto-plankton-classification
 ```
 
 #### 1.4 Run the docker container inside the local folder
 
-After docker is installed and running, you can run the ready-to-use [Docker container](https://github.com/deephdc/DEEP-OC-phyto-plankton-classification) to
+After docker is installed and running, you can run the ready-to-use [Docker container](https://hub.docker.com/r/deephdc/uc-lifewatch-deep-oc-phyto-plankton-classification) to
 run this module. To run it:
 
 ##### option 1) Run container and activate acess to nextcloud server through rclone.
@@ -116,17 +118,17 @@ pass = ***some-userpassword**  --> this is equivalent to `rclone obscure <passwo
 Copy the location to the rclone.config location (e.g., C:/Users/wout.decrop/project_environment/module_imagine/rclone.conf) and apply the line of code
 
 ```bash
-docker run -ti -p 8888:8888 -p 5000:5000 -v "LOCATION/rclone.conf:/root/.config/rclone/rclone.conf" -v "$(pwd):/srv/phyto-plankton-classification" deephdc/uc-woutdecrop-deep-oc-phyto-plankton-classification:latest /bin/bash
+docker run -ti -p 8888:8888 -p 5000:5000 -v "LOCATION/rclone.conf:/root/.config/rclone/rclone.conf" -v "$(pwd):/srv/phyto-plankton-classification" deephdc/uc-lifewatch-deep-oc-phyto-plankton-classification:latest /bin/bash
 ```
 For example
 ```bash
-docker run -ti -p 8888:8888 -p 5000:5000 -v "C:/Users/wout.decrop/project_environment/module_imagine/rclone.conf:/root/.config/rclone/rclone.conf" -v "$(pwd):/srv/phyto-plankton-classification" deephdc/uc-woutdecrop-deep-oc-phyto-plankton-classification:latest /bin/bash
+docker run -ti -p 8888:8888 -p 5000:5000 -v "C:/Users/wout.decrop/project_environment/module_imagine/rclone.conf:/root/.config/rclone/rclone.conf" -v "$(pwd):/srv/phyto-plankton-classification" deephdc/uc-lifewatch-deep-oc-phyto-plankton-classification:latest /bin/bash
 ```
 
 ##### option 2) Run container and only have local access
 All files can be locally saved but rclone needs to be configured after activation to acces nextcloud server, follow [Tutorial](https://docs.ai4eosc.eu/en/latest/user/howto/rclone.html#configuring-rclone)
 ```bash
-docker run -ti -p 8888:8888 -p 5000:5000 -v "$(pwd):/srv/phyto-plankton-classification" deephdc/uc-woutdecrop-deep-oc-phyto-plankton-classification:latest /bin/bash
+docker run -ti -p 8888:8888 -p 5000:5000 -v "$(pwd):/srv/phyto-plankton-classification" deephdc/uc-lifewatch-deep-oc-phyto-plankton-classification:latest /bin/bash
 ```
 Now open http://0.0.0.0:5000/ui and look for the methods belonging to the `planktonclas` module.
 
