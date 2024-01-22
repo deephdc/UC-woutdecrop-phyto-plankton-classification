@@ -162,12 +162,16 @@ def load_inference_model(timestamp=None, ckpt_name=None):
         update_with_saved_conf(conf)
 
     # Load the model
-    model = load_model(
-        os.path.join(paths.get_checkpoints_dir(), ckpt_name),
-        custom_objects=utils.get_custom_objects(),
-    )
+    model = load_model(os.path.join(paths.get_checkpoints_dir(), ckpt_name),
+                       custom_objects=utils.get_custom_objects())
     graph = tf.get_default_graph()
 
+    # model = load_model(
+    #     os.path.join(paths.get_checkpoints_dir(), ckpt_name),
+    #     custom_objects=utils.get_custom_objects(),
+    # )
+    # graph = tf.get_default_graph()
+    # graph = tf.compat.v1.get_default_graph()
     # Set the model as loaded
     loaded_ts = timestamp
     loaded_ckpt = ckpt_name
@@ -306,6 +310,7 @@ def predict_url(args):
 
     # Make the predictions
     with graph.as_default():
+
         pred_lab, pred_prob = test_utils.predict(
             model=model,
             X=args["urls"],
@@ -352,18 +357,17 @@ def predict_data(args):
     # Make the predictions
     try:
         with graph.as_default():
-            pred_lab, pred_prob = test_utils.predict(
-                model=model,
-                X=filenames,
-                conf=conf,
-                top_K=top_K,
-                filemode="local",
-                merge=merge,
-                use_multiprocessing=False,
-            )  # safer to avoid memory fragmentation in failed queries
+            pred_lab, pred_prob = test_utils.predict(model=model,
+                                                    X=filenames,
+                                                    conf=conf,
+                                                    top_K=top_K,
+                                                    filemode='local',
+                                                    merge=merge,
+                                                    use_multiprocessing=False)  # safer to avoid memory fragmentation in failed queries
     finally:
         for f in filenames:
             os.remove(f)
+
 
     if merge:
         pred_lab, pred_prob = np.squeeze(pred_lab), np.squeeze(pred_prob)
@@ -372,23 +376,20 @@ def predict_data(args):
 
 
 def format_prediction(labels, probabilities, original_filename):
-    # pred = {'original_filename': original_filename,
-    #     'labels': [class_names[i] for i in labels],
-    #     'probabilities': [float(p) for p in probabilities],
-    #     'labels_info': [class_info[i] for i in labels],
-    #     'links': {'Google Images': [image_link(class_names[i]) for i in labels],
-    #                 'Wikipedia': [wikipedia_link(class_names[i]) for i in labels]
-    #                 }
-    #     }
-    pred_lab = [class_names[i] for i in labels]
-    pred_aphia_ids = [aphia_ids[i] for i in labels]
+    if aphia_ids is not None:
+        pred_aphia_ids = [aphia_ids[i] for i in labels]
+    else:
+        pred_aphia_ids= aphia_ids
+    pred_labels=[class_names[i] for i in labels]
     pred_prob = [float(p) for p in probabilities]
+
     pred_dict = {
         "filenames": original_filename,
-        "pred_lab": pred_lab,
+        "pred_lab": pred_labels,  # Use converted list
         "pred_prob": pred_prob,
         "aphia_ids": pred_aphia_ids,
     }
+
     conf = config.conf_dict
     ckpt_name = conf["testing"]["ckpt_name"]
     split_name = "test"
@@ -396,23 +397,15 @@ def format_prediction(labels, probabilities, original_filename):
         paths.get_predictions_dir(),
         "{}+{}+top{}.json".format(ckpt_name, split_name, top_K),
     )
+
     with open(pred_path, "w") as outfile:
         json.dump(pred_dict, outfile, sort_keys=True)
 
-    # mount_nextcloud('rshare:vliz/Imagine_UC5/data/dataset_files', paths.get_splits_dir())
     try:
         mount_nextcloud(pred_path, "rshare:Imagine_UC5/predictions")
-        print("Mount predictions from local to nextcloud successfull! ")
+        print("Mount predictions from local to nextcloud successful!")
     except Exception as e:
-        print("Final loading not succesfull: ", e)
-
-    # pred = {'labels': [class_names[i] for i in labels],
-    #         'probabilities': [float(p) for p in probabilities],
-    #         'labels_info': [class_info[i] for i in labels],
-    #         'links': {'Google Images': [image_link(class_names[i]) for i in labels],
-    #                   'Wikipedia': [wikipedia_link(class_names[i]) for i in labels]
-    #                   }
-    #         }
+        print("Final loading not successful: ", e)
 
     return pred_dict
 

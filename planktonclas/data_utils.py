@@ -105,9 +105,12 @@ def load_aphia_ids(splits_dir):
     Numpy array of shape (N) containing strs with class names
     """
     print("Loading aphia_ids...")
-    aphia_ids = np.genfromtxt(
-        os.path.join(splits_dir, "aphia_ids.txt"), dtype="str", delimiter="/n"
-    )
+    try: 
+        aphia_ids = np.genfromtxt(
+        os.path.join(splits_dir, "aphia_ids.txt"), dtype="str", delimiter="/n")
+    except:
+        aphia_ids=None
+        
     return aphia_ids
 
 
@@ -707,7 +710,11 @@ def compute_classweights(labels, max_dim=None, mode="balanced"):
     if mode is None:
         return None
 
-    weights = np.bincount(labels)
+    try:
+        weights = np.bincount(labels)
+    except TypeError:
+        _, weights = np.unique(labels, return_counts=True)
+        
     weights = np.sum(weights) / weights
 
     # Fill the count if some high number labels are not present in the sample
