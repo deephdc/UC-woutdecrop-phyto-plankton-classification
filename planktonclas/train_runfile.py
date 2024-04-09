@@ -235,6 +235,7 @@ def train_fn(TIMESTAMP, CONF):
 
         if aphia_ids is not None:
             pred_aphia_ids = [aphia_ids[i] for i in pred_lab]
+            pred_aphia_ids =[aphia_id.tolist() for aphia_id in pred_aphia_ids ]
         else:
             pred_aphia_ids= aphia_ids
 
@@ -249,7 +250,8 @@ def train_fn(TIMESTAMP, CONF):
         pred_dict = {'filenames': list(X_test),
                      'pred_lab': pred_lab.tolist(),
                      'pred_prob': pred_prob.tolist(),
-                    'pred_lab_names': pred_lab_names}
+                    'pred_lab_names': pred_lab_names,
+                    'aphia_ids': pred_aphia_ids}
         if y_test is not None:
             pred_dict['true_lab'] = y_test.tolist()
             pred_dict['true_lab_names'] = y_test_names

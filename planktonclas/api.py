@@ -266,18 +266,58 @@ def warm():
     except Exception as e:
         print(e)
 
-
+import zipfile
+import os
+import tempfile
+from deepaas.model.v2.wrapper import UploadedFile
 @catch_error
 def predict(**args):
-    if not any([args["urls"], args["files"]]) or all([args["urls"], args["files"]]):
-        raise Exception("You must provide either 'url' or 'data' in the payload")
+    if not any([args["urls"], args["files"], args["zip"]]):
+        raise Exception("You must provide either 'urls', 'files', or 'zip' in the payload")
 
-    if args["files"]:
+    # if not any([args["urls"], args["files"]]) or all([args["urls"], args["files"]]):
+    #     raise Exception("You must provide either 'url' or 'data' in the payload")
+
+    if args["zip"]:
+        # Check if zip file is provided
+        zip_file = args["zip"]
+
+        # Create a temporary directory to extract the files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Extract the zip file
+            with zipfile.ZipFile(zip_file.filename, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+
+            # Get the list of files extracted from the zip
+            folder_files = os.listdir(temp_dir)
+
+            # Assign the list of files to args["files"]
+
+            uploaded_files = []
+            for file in folder_files:
+                file_path = os.path.join(temp_dir, file)
+                uploaded_files.append(UploadedFile(name='data', filename=file_path, content_type='image/jpeg', original_filename=file))
+
+            # Assign the list of files to args["files"]
+            args["files"] = uploaded_files
+
+
+
+
+            # Call predict_data function (assuming it handles a list of files)
+            return predict_data(args)
+    elif args["files"]:
         args["files"] = [args["files"]]  # patch until list is available
+        print(args["files"])
         return predict_data(args)
     elif args["urls"]:
         args["urls"] = [args["urls"]]  # patch until list is available
         return predict_url(args)
+
+
+        # args["files"] = folder_files
+
+        # return predict_data(args)
 
 
 def predict_url(args):
@@ -329,7 +369,8 @@ def predict_data(args):
     update_with_query_conf(args)
     conf = config.conf_dict
 
-    merge = True
+    merge = False
+
     catch_localfile_error(args["files"])
     # print("args: ", args)
     # print("args: ", args['files'])
@@ -346,7 +387,7 @@ def predict_data(args):
 
     # Create a list with the path to the images
     filenames = [f.filename for f in args["files"]]
-    original_filename = [f.original_filename for f in args["files"]]
+    original_filenames = [f.original_filename for f in args["files"]]
 
     # Make the predictions
     try:
@@ -366,24 +407,26 @@ def predict_data(args):
     if merge:
         pred_lab, pred_prob = np.squeeze(pred_lab), np.squeeze(pred_prob)
 
-    return format_prediction(pred_lab, pred_prob, original_filename)
+    return format_prediction(pred_lab, pred_prob, original_filenames)
 
 
-def format_prediction(labels, probabilities, original_filename):
+def format_prediction(labels, probabilities, original_filenames):
     if aphia_ids is not None:
         pred_aphia_ids = [aphia_ids[i] for i in labels]
+        pred_aphia_ids =[aphia_id.tolist() for aphia_id in pred_aphia_ids ]
     else:
         pred_aphia_ids= aphia_ids
-    pred_labels=[class_names[i] for i in labels]
-    pred_prob = [float(p) for p in probabilities]
+    class_index_map = {index:class_name for index, class_name in enumerate(class_names)}
+    pred_lab_names = [[class_index_map[label] for label in labels] for labels in labels]
+    # pred_labels=[class_names[i] for i in labels]
+    pred_prob = probabilities
 
     pred_dict = {
-        "filenames": original_filename,
-        "pred_lab": pred_labels,  # Use converted list
-        "pred_prob": pred_prob,
+        "filenames": list(original_filenames),
+        "pred_lab": pred_lab_names,  # Use converted list
+        "pred_prob": pred_prob.tolist(),
         "aphia_ids": pred_aphia_ids,
     }
-
     conf = config.conf_dict
     ckpt_name = conf["testing"]["ckpt_name"]
     split_name = "test"
@@ -391,7 +434,6 @@ def format_prediction(labels, probabilities, original_filename):
         paths.get_predictions_dir(),
         "{}+{}+top{}.json".format(ckpt_name, split_name, top_K),
     )
-
     with open(pred_path, "w") as outfile:
         json.dump(pred_dict, outfile, sort_keys=True)
 
@@ -447,6 +489,7 @@ def populate_parser(parser, default_conf):
     """
     Returns a arg-parse like parser.
     """
+    print("popu parser")
     for group, val in default_conf.items():
         for g_key, g_val in val.items():
             gg_keys = g_val.keys()
@@ -512,28 +555,14 @@ def get_predict_args():
         timestamp["value"] = timestamp_list[-1]
         timestamp["choices"] = timestamp_list
 
-    parser["files"] = fields.List(
-        fields.Field(
-            required=False,
-            missing=None,
-            type="file",
-            data_key="data",
-            location="form",
-            description="Select the images you want to classify.",
-        ),
+    parser["files"] = fields.Field(
         required=False,
         missing=None,
-        description="Select the images you want to classify.",
+        type="file",
+        data_key="data",
+        location="form",
+        description="Select the image you want to classify.",
     )
-    # # Add data and url fields
-    # parser["files"] = fields.Field(
-    #     required=False,
-    #     missing=None,
-    #     type="file",
-    #     data_key="data",
-    #     location="form",
-    #     description="Select the image you want to classify.",
-    # )
 
     # Use field.String instead of field.Url because I also want to allow uploading of base 64 encoded data strings
     parser["urls"] = fields.String(
@@ -542,7 +571,16 @@ def get_predict_args():
         description="Select an URL of the image you want to classify.",
     )
 
-    # missing action="append" --> append more than one url
+
+    parser["zip"] = fields.Field(
+        required=False,
+        missing=None,
+        type="file",
+        data_key="zip_data",  # Unique data key for zip
+        location="form",
+        description="Select the ZIP file containing images you want to classify.",
+    )
+
 
     return populate_parser(parser, default_conf)
 
